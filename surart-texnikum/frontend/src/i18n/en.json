@@ -1,0 +1,4 @@
+{
+  "nav": {"home":"Home","news":"News","gallery":"Gallery","leadership":"Leadership","library":"Library","location":"Location","mvp":"MVP","pearson":"Pearson","application":"Apply Now","contact":"Contact"},
+  "home": {"hero_title":"Surart Technical College","hero_subtitle":"Modern education shaping the specialists of tomorrow","hero_cta_primary":"Apply Now","hero_cta_secondary":"Learn More"}
+}
