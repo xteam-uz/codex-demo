@@ -1,0 +1,137 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum RoomState {
+  waiting
+  started
+  finished
+}
+
+enum GamePhase {
+  waiting
+  night
+  day
+  voting
+  result
+  finished
+}
+
+enum Role {
+  mafia
+  doctor
+  detective
+  civilian
+}
+
+model User {
+  id          String       @id
+  username    String?
+  firstName   String
+  language    String       @default("en")
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  warnings    Warning[]
+  roomPlayers RoomPlayer[]
+  votes       Vote[]       @relation("VoteTarget")
+  votesBy     Vote[]       @relation("VoteBy")
+}
+
+model Group {
+  id          String       @id
+  title       String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  settings    GroupSetting?
+  warnings    Warning[]
+  rooms       Room[]
+}
+
+model GroupSetting {
+  groupId          String  @id
+  welcomeEnabled   Boolean @default(true)
+  antiLinkEnabled  Boolean @default(true)
+  maxWarnings      Int     @default(3)
+  autoKickEnabled  Boolean @default(false)
+  rulesText        String?
+  group            Group   @relation(fields: [groupId], references: [id], onDelete: Cascade)
+}
+
+model Warning {
+  id         String   @id @default(cuid())
+  groupId    String
+  userId     String
+  reason     String?
+  createdAt  DateTime @default(now())
+
+  group      Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([groupId, userId])
+}
+
+model Room {
+  id          String       @id @default(cuid())
+  groupId     String
+  creatorId   String
+  state       RoomState    @default(waiting)
+  phase       GamePhase    @default(waiting)
+  round       Int          @default(0)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  group       Group        @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  players     RoomPlayer[]
+  actions     GameAction[]
+  votes       Vote[]
+
+  @@index([groupId, state])
+}
+
+model RoomPlayer {
+  id         String   @id @default(cuid())
+  roomId     String
+  userId     String
+  role       Role?
+  isAlive    Boolean  @default(true)
+  joinedAt   DateTime @default(now())
+
+  room       Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, userId])
+  @@index([roomId, role])
+}
+
+model GameAction {
+  id         String   @id @default(cuid())
+  roomId     String
+  round      Int
+  actorId    String
+  actionType String
+  targetId   String?
+  createdAt  DateTime @default(now())
+
+  room       Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@index([roomId, round, actionType])
+}
+
+model Vote {
+  id         String   @id @default(cuid())
+  roomId     String
+  round      Int
+  voterId    String
+  targetId   String
+  createdAt  DateTime @default(now())
+
+  room       Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  voter      User     @relation("VoteBy", fields: [voterId], references: [id], onDelete: Cascade)
+  target     User     @relation("VoteTarget", fields: [targetId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, round, voterId])
+}
